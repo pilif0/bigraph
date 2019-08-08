@@ -147,14 +147,28 @@ qed
 
 text\<open>Inducing a subhypergraph with the vertices of the hypergraph being induced upon results in the
 original hypergraph.\<close>
+(* Counter-example for non-hypergraph hg: if hg has edge {} then it is removed *)
 lemma identity_induced_subhypergraph:
   assumes "s = induce_subhypergraph A hg"
+      and "hypergraph hg"
       and "A = Verts hg"
     shows "s = hg"
 proof -
   have "Verts s = Verts hg"
-    by (simp add: assms(1) assms(2))
-  moreover have "Edges s = Edges hg" sorry
+    by (simp add: assms(1) assms(3))
+  moreover have "Edges s = Edges hg"
+  proof -
+    have "\<forall>e. e \<in> Edges hg \<longrightarrow> e = e \<inter> A"
+      by (simp add: assms(2) assms(3) hypergraph.edge_inter_vertices)
+    then have "{e \<inter> A |e. e \<in> Edges hg} = {e | e. e \<in> Edges hg}"
+      by blast
+    then have "{e \<inter> A |e. e \<in> Edges hg} = Edges hg"
+      by simp
+    moreover have "{} \<notin> Edges hg"
+      by (simp add: assms(2) hypergraph.edges_not_empty)
+    ultimately show ?thesis
+      by (simp add: assms(1))
+  qed
   ultimately show ?thesis
     by (simp add: pre_hypergraph_eq_iff)
 qed
