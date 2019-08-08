@@ -116,9 +116,20 @@ proof
     ultimately show ?thesis
       by simp
   qed
-  show "{} \<notin> Edges s"
+  show no_empty_edge: "{} \<notin> Edges s"
     by (simp add: assms(1))
-  show "\<forall>e. e \<in> Edges s \<longrightarrow> e \<subseteq> Verts s" sorry
+  show "\<forall>e. e \<in> Edges s \<longrightarrow> e \<subseteq> Verts s"
+  proof (rule allI, rule impI)
+    fix e assume e_in_s: "e \<in> Edges s"
+    then have "e \<noteq> {}"
+      using no_empty_edge by blast
+    then have "\<exists>f. f \<in> Edges hg \<and> e \<subseteq> f"
+      using assms(1) e_in_s by auto
+    then have "e \<subseteq> Verts hg"
+      using assms(2) hypergraph.edge_inter_vertices by auto
+    then show "e \<subseteq> Verts s"
+      using assms(1) e_in_s by auto
+  qed
 qed
 
 text\<open>Inducing a subhypergraph with an empty set results in an empty hypergraph (with no vertices or
