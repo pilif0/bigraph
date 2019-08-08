@@ -75,15 +75,13 @@ subsection\<open>Subhypergraphs\<close>
 text\<open>Subhypergraph A of hypergraph B is a hypergraph formed from B by removing some vertices from
 both its vertex set and edges. Because A is a hypergraph, it any empty edges are also removed.\<close>
 definition is_subhypergraph :: "'v pre_hypergraph \<Rightarrow> 'v pre_hypergraph \<Rightarrow> bool"
-  where "is_subhypergraph a b = (Verts a \<subseteq> Verts b \<and>
-                                  (\<forall>e. e \<in> Edges a \<longrightarrow> (\<exists>f. f \<in> Edges b \<and> e = f \<inter> Verts a)
-                                                        \<and> e \<noteq> {}))"
+  where "is_subhypergraph a b = (Verts a \<subseteq> Verts b \<and> Edges a = ({e \<inter> Verts a | e. e \<in> Edges b} - {{}}))"
 
 text\<open>A set of vertices can induce a subhypergraph from a hypergraph.\<close>
 primcorec induce_subhypergraph :: "'v set \<Rightarrow> 'v pre_hypergraph \<Rightarrow> 'v pre_hypergraph"
   where
     "Verts (induce_subhypergraph A hg) = A \<inter> Verts hg"
-  | "Edges (induce_subhypergraph A hg) = {e . (\<exists>f. f \<in> Edges hg \<and> e = f \<inter> A) \<and> e \<noteq> {}}"
+  | "Edges (induce_subhypergraph A hg) = {e \<inter> A | e. e \<in> Edges hg} - {{}}"
 
 (*TODO: better name?*)
 lemma induce_subhypergraph_result:
@@ -101,7 +99,17 @@ lemma hypergraph_induced_subhypergraph:
 proof
   show "finite (Verts s)"
     by (simp add: assms(1) assms(2) hypergraph.vertices_finite)
-  show "finite (Edges s)" sorry
+  show "finite (Edges s)"
+  proof -
+    have "finite (Edges hg)"
+      by (simp add: assms(2) hypergraph.edges_finite)
+    then have "\<forall>S. finite ({e \<inter> S | e. e \<in> Edges hg} - {{}})"
+      by simp
+    moreover have "Edges s = {e \<inter> A | e. e \<in> Edges hg} - {{}}"
+      by (simp add: assms(1))
+    ultimately show ?thesis
+      by simp
+  qed
   show "{} \<notin> Edges s"
     by (simp add: assms(1))
   show "\<forall>e. e \<in> Edges s \<longrightarrow> e \<subseteq> Verts s" sorry
@@ -113,7 +121,12 @@ lemma empty_induced_subhypergraph:
   assumes "s = induce_subhypergraph A hg"
       and "A = {}"
     shows "s = Hypergraph {} {}"
-  by (simp add: assms(1) assms(2) induce_subhypergraph.code)
+proof -
+  have "{e \<inter> {} |e. e \<in> Edges hg} \<subseteq> {{}}"
+    by blast
+  then show ?thesis
+    by (simp add: assms(1) assms(2) induce_subhypergraph.code)
+qed
 
 text\<open>Inducing a subhypergraph with the vertices of the hypergraph being induced upon results in the
 original hypergraph.\<close>
