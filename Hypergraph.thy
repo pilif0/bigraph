@@ -88,8 +88,14 @@ lemma induce_subhypergraph_result:
   assumes "hypergraph hg"
       and "s = induce_subhypergraph A hg"
     shows "is_subhypergraph s hg"
-(* One problem with this proof is equating Verts a with A in the edge part of the two definitions *)
-  sorry
+proof -
+  have "\<forall>e . e \<in> Edges hg \<longrightarrow> (e \<inter> A = e \<inter> (A \<inter> Verts hg))"
+    using assms(1) hypergraph.edge_inter_vertices by blast
+  then have "{e \<inter> A | e. e \<in> Edges hg} = {e \<inter> (A \<inter> Verts hg) | e. e \<in> Edges hg}"
+    by blast
+  then show ?thesis
+    by (simp add: assms(2) is_subhypergraph_def)
+qed
 
 text\<open>Inducing a subhypergraph from a hypergraph produces a hypergraph.\<close>
 lemma hypergraph_induced_subhypergraph:
