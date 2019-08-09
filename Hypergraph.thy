@@ -73,9 +73,90 @@ lemma loop_free_card:
 subsection\<open>Subhypergraphs\<close>
 
 text\<open>Subhypergraph A of hypergraph B is a hypergraph formed from B by removing some vertices from
-both its vertex set and edges. Because A is a hypergraph, it any empty edges are also removed.\<close>
-definition is_subhg :: "'v pre_hypergraph \<Rightarrow> 'v pre_hypergraph \<Rightarrow> bool"
-  where "is_subhg a b = (Verts a \<subseteq> Verts b \<and> Edges a = ({e \<inter> Verts a | e. e \<in> Edges b} - {{}}))"
+both its vertex set and edges. Because A is a hypergraph, any empty edges are also removed.\<close>
+definition is_subhg_of :: "'v pre_hypergraph \<Rightarrow> 'v pre_hypergraph \<Rightarrow> bool"
+  (* Hypergraph condition is only on the source is sufficient, because this implies that the result
+      is a hypergraph as well *)
+  where "is_subhg_of a b = (hypergraph b \<longrightarrow> (Verts a \<subseteq> Verts b \<and>
+                                              Edges a = ({e \<inter> Verts a | e. e \<in> Edges b} - {{}})))"
+
+text\<open>Any subhypergraph of a hypergraph is itself a hypergraph.\<close>
+lemma subhg_is_hypergraph:
+  assumes "is_subhg_of a b"
+      and "hypergraph b"
+    shows "hypergraph a"
+proof
+  show "finite (Verts a)"
+    using assms(1) assms(2) hypergraph.vertices_finite infinite_super is_subhg_of_def by blast
+  show "finite (Edges a)"
+  proof -
+    have "finite (Edges b)"
+      by (simp add: assms(2) hypergraph.edges_finite)
+    then have "\<forall>S. finite ({e \<inter> S | e. e \<in> Edges b} - {{}})"
+      by simp
+    moreover have "Edges a = {e \<inter> Verts a | e. e \<in> Edges b} - {{}}"
+      using assms(1) assms(2) is_subhg_of_def by blast
+    ultimately show ?thesis
+      by simp
+  qed
+  show no_empty_edge: "{} \<notin> Edges a"
+    using assms(1) assms(2) is_subhg_of_def by auto
+  show "\<forall>e. e \<in> Edges a \<longrightarrow> e \<subseteq> Verts a"
+  proof (rule allI, rule impI)
+    fix e assume e_in_a: "e \<in> Edges a"
+    then have "e \<noteq> {}"
+      using no_empty_edge by blast
+    then have source_edge: "\<exists>f. f \<in> Edges b \<and> e \<subseteq> f"
+    proof -
+      have "{f \<inter> Verts a |f. f \<in> Edges b} - {{}} = Edges a"
+        using assms(1) assms(2) is_subhg_of_def by blast
+      then have "\<forall>f. f \<in> Edges a \<longrightarrow> (\<exists>g. f = g \<inter> Verts a \<and> g \<in> Edges b)"
+        by blast
+      then show ?thesis
+        using e_in_a by blast
+    qed
+    then have "e \<subseteq> Verts b"
+      using assms(2) hypergraph.edge_inter_vertices by auto
+    then show "e \<subseteq> Verts a"
+    proof -
+      have "{A \<inter> Verts a |A. A \<in> Edges b} - {{}} = Edges a"
+        using assms(1) assms(2) is_subhg_of_def by blast
+      then have "e \<in> {A \<inter> Verts a |A. A \<in> Edges b}"
+        using e_in_a by blast
+      then show ?thesis
+        by fastforce
+    qed
+  qed
+qed
+
+text\<open>The subhypergraph predicate is reflexive.\<close>
+lemma is_subhg_of_refl: "reflp is_subhg_of"
+proof
+  fix x :: "'v pre_hypergraph"
+  show "is_subhg_of x x"
+  proof (cases "hypergraph x")
+    case True
+    then have "Edges x = ({e \<inter> Verts x | e. e \<in> Edges x} - {{}})"
+    proof -
+      have "\<forall>e. e \<in> Edges x \<longrightarrow> e \<inter> Verts x = e"
+        by (simp add: True hypergraph.edge_inter_vertices)
+      then have "Edges x = {e \<inter> Verts x | e. e \<in> Edges x}"
+        by auto
+      moreover have "{} \<notin> Edges x"
+        by (simp add: True hypergraph.edges_not_empty)
+      ultimately show ?thesis
+        by blast
+    qed
+    moreover have "Verts x \<subseteq> Verts x"
+      by simp
+    ultimately show ?thesis
+      by (simp add: is_subhg_of_def)
+  next
+    case False
+    then show ?thesis
+      by (simp add: is_subhg_of_def)
+  qed
+qed
 
 text\<open>A set of vertices can induce a subhypergraph from a hypergraph.\<close>
 primcorec induce_subhg :: "'v set \<Rightarrow> 'v pre_hypergraph \<Rightarrow> 'v pre_hypergraph"
@@ -87,14 +168,14 @@ primcorec induce_subhg :: "'v set \<Rightarrow> 'v pre_hypergraph \<Rightarrow> 
 lemma induce_subhg_result:
   assumes "hypergraph hg"
       and "s = induce_subhg A hg"
-    shows "is_subhg s hg"
+    shows "is_subhg_of s hg"
 proof -
   have "\<forall>e . e \<in> Edges hg \<longrightarrow> (e \<inter> A = e \<inter> (A \<inter> Verts hg))"
     using assms(1) hypergraph.edge_inter_vertices by blast
   then have "{e \<inter> A | e. e \<in> Edges hg} = {e \<inter> (A \<inter> Verts hg) | e. e \<in> Edges hg}"
     by blast
   then show ?thesis
-    by (simp add: assms(2) is_subhg_def)
+    by (simp add: assms(2) is_subhg_of_def)
 qed
 
 text\<open>Inducing a subhypergraph from a hypergraph produces a hypergraph.\<close>
@@ -102,35 +183,7 @@ lemma hypergraph_induced_subhg:
   assumes "s = induce_subhg A hg"
       and "hypergraph hg"
     shows "hypergraph s"
-proof
-  show "finite (Verts s)"
-    by (simp add: assms(1) assms(2) hypergraph.vertices_finite)
-  show "finite (Edges s)"
-  proof -
-    have "finite (Edges hg)"
-      by (simp add: assms(2) hypergraph.edges_finite)
-    then have "\<forall>S. finite ({e \<inter> S | e. e \<in> Edges hg} - {{}})"
-      by simp
-    moreover have "Edges s = {e \<inter> A | e. e \<in> Edges hg} - {{}}"
-      by (simp add: assms(1))
-    ultimately show ?thesis
-      by simp
-  qed
-  show no_empty_edge: "{} \<notin> Edges s"
-    by (simp add: assms(1))
-  show "\<forall>e. e \<in> Edges s \<longrightarrow> e \<subseteq> Verts s"
-  proof (rule allI, rule impI)
-    fix e assume e_in_s: "e \<in> Edges s"
-    then have "e \<noteq> {}"
-      using no_empty_edge by blast
-    then have "\<exists>f. f \<in> Edges hg \<and> e \<subseteq> f"
-      using assms(1) e_in_s by auto
-    then have "e \<subseteq> Verts hg"
-      using assms(2) hypergraph.edge_inter_vertices by auto
-    then show "e \<subseteq> Verts s"
-      using assms(1) e_in_s by auto
-  qed
-qed
+  using assms(1) assms(2) induce_subhg_result subhg_is_hypergraph by blast
 
 text\<open>Inducing a subhypergraph with an empty set results in an empty hypergraph (with no vertices or
 edges).\<close>
