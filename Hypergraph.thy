@@ -80,6 +80,14 @@ definition is_subhg_of :: "'v pre_hypergraph \<Rightarrow> 'v pre_hypergraph \<R
   where "is_subhg_of a b = (hypergraph b \<longrightarrow> (Verts a \<subseteq> Verts b \<and>
                                               Edges a = ({e \<inter> Verts a | e. e \<in> Edges b} - {{}})))"
 
+lemma is_subhg_ofI:
+  assumes "hypergraph b"
+      and "Verts a \<subseteq> Verts b"
+      and "Edges a = ({e \<inter> Verts a | e. e \<in> Edges b} - {{}})"
+    shows "is_subhg_of a b"
+  by (simp add: assms(2) assms(3) is_subhg_of_def)
+
+
 text\<open>Any subhypergraph of a hypergraph is itself a hypergraph.\<close>
 lemma subhg_is_hypergraph:
   assumes "is_subhg_of a b"
@@ -151,6 +159,69 @@ proof
       by simp
     ultimately show ?thesis
       by (simp add: is_subhg_of_def)
+  next
+    case False
+    then show ?thesis
+      by (simp add: is_subhg_of_def)
+  qed
+qed
+
+text\<open>The subhypergraph predicate is transitive.\<close>
+lemma is_subhg_of_transp: "transp is_subhg_of"
+proof
+  fix x y z :: "'v pre_hypergraph"
+  assume xy: "is_subhg_of x y" and yz: "is_subhg_of y z"
+  then show "is_subhg_of x z"
+  proof (cases "hypergraph z")
+    case True
+    then show ?thesis
+    proof (rule is_subhg_ofI)
+      have vx_in_vy: "Verts x \<subseteq> Verts y"
+        using True is_subhg_of_def subhg_is_hypergraph xy yz by blast
+      moreover have "Verts y \<subseteq> Verts z"
+        using True is_subhg_of_def yz by blast
+      ultimately show "Verts x \<subseteq> Verts z"
+        by simp
+
+      show "Edges x = {e \<inter> Verts x | e. e \<in> Edges z} - {{}}"
+      proof
+        (* Left to right *)
+        have "Edges y = {e \<inter> Verts y | e. e \<in> Edges z} - {{}}"
+          using True is_subhg_of_def yz by blast
+        then have f_y: "\<forall>e. e \<in> Edges y \<longrightarrow> (\<exists>f. f \<in> Edges z \<and> e = f \<inter> Verts y) \<and> e \<noteq> {}"
+          by auto
+
+        have "Edges x = {e \<inter> Verts x | e. e \<in> Edges y} - {{}}"
+          using True is_subhg_of_def subhg_is_hypergraph xy yz by blast
+        then have f_x: "\<forall>e. e \<in> Edges x \<longrightarrow> (\<exists>f. f \<in> Edges y \<and> e = f \<inter> Verts x) \<and> e \<noteq> {}"
+          by auto
+
+        from f_x f_y have "\<forall>e. e \<in> Edges x \<longrightarrow> (\<exists>f. f \<in> Edges z \<and> e = f \<inter> Verts y \<inter> Verts x) \<and> e \<noteq> {}"
+          by blast
+        then have "\<forall>e. e \<in> Edges x \<longrightarrow> (\<exists>f. f \<in> Edges z \<and> e = f \<inter> Verts x) \<and> e \<noteq> {}"
+          using vx_in_vy by auto
+        then show "Edges x \<subseteq> {e \<inter> Verts x | e. e \<in> Edges z} - {{}}"
+          by blast
+
+        (* Right to left *)
+        have "Edges y = {e \<inter> Verts y | e. e \<in> Edges z} - {{}}"
+          using True is_subhg_of_def yz by blast
+        then have f_y: "\<forall>e. e \<in> Edges z \<and> e \<inter> Verts y \<noteq> {} \<longrightarrow> e \<inter> Verts y \<in> Edges y"
+          by blast
+
+        have "Edges x = {e \<inter> Verts x | e. e \<in> Edges y} - {{}}"
+          using True is_subhg_of_def subhg_is_hypergraph xy yz by blast
+        then have f_x: "\<forall>e. e \<in> Edges y \<and> e \<inter> Verts x \<noteq> {} \<longrightarrow> e \<inter> Verts x \<in> Edges x"
+          by blast
+
+        from f_x f_y have "\<forall>e. e \<in> Edges z \<and> e \<inter> Verts y \<inter> Verts x \<noteq> {} \<longrightarrow> e \<inter> Verts y \<inter> Verts x \<in> Edges x"
+          by blast
+        then have "\<forall>e. e \<in> Edges z \<and> e \<inter> Verts x \<noteq> {} \<longrightarrow> e \<inter> Verts x \<in> Edges x"
+          using vx_in_vy by (simp add: inf.absorb_iff2 inf_assoc)
+        then show "{e \<inter> Verts x | e. e \<in> Edges z} - {{}} \<subseteq> Edges x"
+          by blast
+      qed
+    qed
   next
     case False
     then show ?thesis
