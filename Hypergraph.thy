@@ -74,32 +74,32 @@ subsection\<open>Subhypergraphs\<close>
 
 text\<open>Subhypergraph A of hypergraph B is a hypergraph formed from B by removing some vertices from
 both its vertex set and edges. Because A is a hypergraph, it any empty edges are also removed.\<close>
-definition is_subhypergraph :: "'v pre_hypergraph \<Rightarrow> 'v pre_hypergraph \<Rightarrow> bool"
-  where "is_subhypergraph a b = (Verts a \<subseteq> Verts b \<and> Edges a = ({e \<inter> Verts a | e. e \<in> Edges b} - {{}}))"
+definition is_subhg :: "'v pre_hypergraph \<Rightarrow> 'v pre_hypergraph \<Rightarrow> bool"
+  where "is_subhg a b = (Verts a \<subseteq> Verts b \<and> Edges a = ({e \<inter> Verts a | e. e \<in> Edges b} - {{}}))"
 
 text\<open>A set of vertices can induce a subhypergraph from a hypergraph.\<close>
-primcorec induce_subhypergraph :: "'v set \<Rightarrow> 'v pre_hypergraph \<Rightarrow> 'v pre_hypergraph"
+primcorec induce_subhg :: "'v set \<Rightarrow> 'v pre_hypergraph \<Rightarrow> 'v pre_hypergraph"
   where
-    "Verts (induce_subhypergraph A hg) = A \<inter> Verts hg"
-  | "Edges (induce_subhypergraph A hg) = {e \<inter> A | e. e \<in> Edges hg} - {{}}"
+    "Verts (induce_subhg A hg) = A \<inter> Verts hg"
+  | "Edges (induce_subhg A hg) = {e \<inter> A | e. e \<in> Edges hg} - {{}}"
 
 (*TODO: better name?*)
-lemma induce_subhypergraph_result:
+lemma induce_subhg_result:
   assumes "hypergraph hg"
-      and "s = induce_subhypergraph A hg"
-    shows "is_subhypergraph s hg"
+      and "s = induce_subhg A hg"
+    shows "is_subhg s hg"
 proof -
   have "\<forall>e . e \<in> Edges hg \<longrightarrow> (e \<inter> A = e \<inter> (A \<inter> Verts hg))"
     using assms(1) hypergraph.edge_inter_vertices by blast
   then have "{e \<inter> A | e. e \<in> Edges hg} = {e \<inter> (A \<inter> Verts hg) | e. e \<in> Edges hg}"
     by blast
   then show ?thesis
-    by (simp add: assms(2) is_subhypergraph_def)
+    by (simp add: assms(2) is_subhg_def)
 qed
 
 text\<open>Inducing a subhypergraph from a hypergraph produces a hypergraph.\<close>
-lemma hypergraph_induced_subhypergraph:
-  assumes "s = induce_subhypergraph A hg"
+lemma hypergraph_induced_subhg:
+  assumes "s = induce_subhg A hg"
       and "hypergraph hg"
     shows "hypergraph s"
 proof
@@ -134,22 +134,24 @@ qed
 
 text\<open>Inducing a subhypergraph with an empty set results in an empty hypergraph (with no vertices or
 edges).\<close>
-lemma empty_induced_subhypergraph:
-  assumes "s = induce_subhypergraph A hg"
+lemma empty_induced_subhg:
+  assumes "s = induce_subhg A hg"
       and "A = {}"
     shows "s = Hypergraph {} {}"
 proof -
   have "{e \<inter> {} |e. e \<in> Edges hg} \<subseteq> {{}}"
     by blast
   then show ?thesis
-    by (simp add: assms(1) assms(2) induce_subhypergraph.code)
+    by (simp add: assms(1) assms(2) induce_subhg.code)
 qed
 
 text\<open>Inducing a subhypergraph with the vertices of the hypergraph being induced upon results in the
 original hypergraph.\<close>
-(* Counter-example for non-hypergraph hg: if hg has edge {} then it is removed *)
-lemma identity_induced_subhypergraph:
-  assumes "s = induce_subhypergraph A hg"
+(* Counter-examples for non-hypergraph hg:
+ - If hg has edge {} then it is removed
+ - If hg has edge e that is not subset of Verts hg then e will not be a subset of (Verts hg \<inter> A) *)
+lemma identity_induced_subhg:
+  assumes "s = induce_subhg A hg"
       and "hypergraph hg"
       and "A = Verts hg"
     shows "s = hg"
