@@ -59,6 +59,8 @@ lemma edge_inter_vertices: "e \<in> Edges hg \<Longrightarrow> e \<inter> Verts 
 
 end
 
+subsection\<open>Properties\<close>
+
 text\<open>A hypergraph is loop free if it contains no singleton edges.\<close>
 definition loop_free :: "'v pre_hypergraph \<Rightarrow> bool"
   where "loop_free hg = (\<forall>e. e \<in> Edges hg \<longrightarrow> (card e \<noteq> 1))"
@@ -69,6 +71,38 @@ lemma loop_free_card:
       and "loop_free hg"
   shows "\<forall>e. e \<in> Edges hg \<longrightarrow> card e \<ge> 2"
   using assms(1) assms(2) hypergraph.edges_card loop_free_def by fastforce
+
+text\<open>Empty hypergraph has no vertices and no edges.\<close>
+definition is_empty :: "'v pre_hypergraph \<Rightarrow> bool"
+  where "is_empty hg = (Verts hg = {} \<and> Edges hg = {})"
+
+text\<open>Trivial hypergraph can have vertices, but no edges.\<close>
+(* Deviation from literature: I allow a trivial hypergraph to be empty. This should simplify later
+statements, removing need to separately state \<open>is_trivial hg \<or> is_empty hg\<close>. This should be revised
+at a later date as it might possibly break some things. *)
+definition is_trivial :: "'v pre_hypergraph \<Rightarrow> bool"
+  where "is_trivial hg = (Edges hg = {})"
+
+lemma empty_is_trivial:
+  assumes "is_empty hg"
+  shows "is_trivial hg"
+  by (meson Hypergraph.is_empty_def assms is_trivial_def)
+
+text\<open>A k-uniform hypergraph has all edges of cardinality k.\<close>
+definition is_k_uniform :: "nat \<Rightarrow> 'v pre_hypergraph \<Rightarrow> bool"
+  where "is_k_uniform k hg = (\<forall>e. e \<in> Edges hg \<longrightarrow> card e = k)"
+
+text\<open>Simple hypergraph has no nested hyperedges.\<close>
+definition is_simple :: "'v pre_hypergraph \<Rightarrow> bool"
+  where "is_simple hg = (\<forall>e f. e \<in> Edges hg \<and> f \<in> Edges hg \<and> e \<subseteq> f \<longrightarrow> e = f)"
+
+text\<open>Degree of a vertex is the number of edges containing it.\<close>
+definition degree :: "'v \<Rightarrow> 'v pre_hypergraph \<Rightarrow> nat"
+  where "degree v hg = card {e | e. e \<in> Edges hg \<and> v \<in> e}"
+
+text\<open>A k-regular hypergraph has all vertices of degree k.\<close>
+definition is_k_regular :: "nat \<Rightarrow> 'v pre_hypergraph \<Rightarrow> bool"
+  where "is_k_regular k hg = (\<forall>v. v \<in> Verts hg \<longrightarrow> degree v hg = k)"
 
 subsection\<open>Subhypergraphs\<close>
 
