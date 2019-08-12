@@ -80,6 +80,7 @@ definition is_subhg_of :: "'v pre_hypergraph \<Rightarrow> 'v pre_hypergraph \<R
   where "is_subhg_of a b = (hypergraph b \<longrightarrow> (Verts a \<subseteq> Verts b \<and>
                                               Edges a = ({e \<inter> Verts a | e. e \<in> Edges b} - {{}})))"
 
+(* Subhypergraph introduction rule for hypergraph sources *)
 lemma is_subhg_ofI:
   assumes "hypergraph b"
       and "Verts a \<subseteq> Verts b"
@@ -298,3 +299,28 @@ proof -
   ultimately show ?thesis
     by (simp add: pre_hypergraph_eq_iff)
 qed
+
+(* TODO: extension of subhg *)
+
+subsection\<open>Partial Hypergraph\<close>
+
+text\<open>Partial hypergraph A is hypergraph B with some edges removed.\<close>
+definition is_partial_of :: "'v pre_hypergraph \<Rightarrow> 'v pre_hypergraph \<Rightarrow> bool"
+  where "is_partial_of a b = (Verts a = Verts b \<and> Edges a \<subseteq> Edges b)"
+
+text\<open>Partial hypergraph of a hypergraph is itself a hypergraph.\<close>
+lemma partial_is_hypergraph:
+  assumes hg_b: "hypergraph b"
+      and assm: "is_partial_of a b"
+    shows "hypergraph a"
+  by (metis assm hg_b hypergraph_def infinite_super is_partial_of_def subsetD)
+
+text\<open>The partial hypergraph predicate is reflexive.\<close>
+lemma is_partial_of_refl: "reflp is_partial_of"
+  by (simp add: is_partial_of_def reflpI)
+
+text\<open>The partial hypergraph predicate is transitive.\<close>
+lemma is_partial_of_trans: "transp is_partial_of"
+  by (metis (mono_tags, lifting) is_partial_of_def order_trans transp_def)
+
+(*TODO would induction of a partial hypergraph with a subset of the edge index set be useful? *)
