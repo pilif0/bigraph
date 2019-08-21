@@ -8,7 +8,10 @@ vertices.
 In the following, any mention of graph refers to a hypergraph.
 Moreover, we assume that the vertices and edges of the hypergraphs are finite.
 
-Inspired by Tom Ridge's 2005 paper "Graphs and Trees in Isabelle/HOL".\<close>
+Inspired by Tom Ridge's 2005 paper "Graphs and Trees in Isabelle/HOL".
+
+Sources:
+- Wikipedia entry on Hypergraphs: https://en.wikipedia.org/wiki/Hypergraph\<close>
 
 theory Hypergraph
   imports
@@ -358,3 +361,43 @@ lemma is_partial_of_trans: "transp is_partial_of"
   by (metis (mono_tags, lifting) is_partial_of_def order_trans transp_def)
 
 (*TODO would induction of a partial hypergraph with a subset of the edge index set be useful? *)
+
+subsection\<open>Section Hypergraph\<close>
+
+text\<open>Given a subset X of vertices of hypergraph B, hypergraph A is a section hypergraph of B if its
+vertices are X and its edges are only the edges of B contained in X.\<close>
+definition is_section_of :: "'v pre_hypergraph \<Rightarrow> 'v pre_hypergraph \<Rightarrow> bool"
+  where "is_section_of a b = (Verts a \<subseteq> Verts b \<and> (\<forall>e. e \<in> Edges a \<longrightarrow> e \<in> Edges b \<and> e \<subseteq> Verts a))"
+
+text\<open>Section hypergraph of a hypergraph is itself a hypergraph.\<close>
+lemma section_is_hypergraph:
+  assumes hg_b: "hypergraph b"
+      and assm: "is_section_of a b"
+    shows "hypergraph a"
+proof
+  show "finite (Verts a)"
+    using assm hg_b hypergraph.vertices_finite infinite_super is_section_of_def by blast
+  show "finite (Edges a)"
+    by (meson assm hg_b hypergraph.edges_finite infinite_super is_section_of_def subsetI)
+  show "{} \<notin> Edges a"
+    by (meson assm hg_b hypergraph.edges_not_empty is_section_of_def)
+  show "\<forall>e. e \<in> Edges a \<longrightarrow> e \<subseteq> Verts a"
+    by (meson assm is_section_of_def)
+qed
+
+text\<open>The section hypergraph predicate is not reflexive.
+Counter-example: a pre_hypergraph that has an edge that is not a subset of its vertices\<close>
+lemma is_section_of_refl: "reflp is_section_of"
+  oops
+
+text\<open>It however is reflexive on hypergraphs.\<close>
+lemma is_section_of_hypergraph_refl:
+  assumes "hypergraph x"
+    shows "is_section_of x x"
+  by (simp add: assms hypergraph.edges_in_powerset is_section_of_def)
+
+text\<open>The section hypergraph predicate is transitive.\<close>
+lemma is_section_of_trans: "transp is_section_of"
+  by (metis (no_types, lifting) is_section_of_def order_trans transp_def)
+
+(* TODO would induction of section hypergraph with a subset of the vertex set be useful? *)
